@@ -22,3 +22,24 @@ test('invalid movement preserves session and state',()=>{
   assert.equal(s.paint.size,1);
   assert.throws(()=>advance(maze,s,'X'));
 });
+
+import {analyzeProgress} from '../web/engine.js';
+test('live graph: still-possible corridor',()=>{
+  const maze={rows:['#####','#...#','#####'],start:[1,1]};
+  assert.equal(analyzeProgress(maze,newGame(maze)).solvable,true);
+});
+test('live graph: soft-lock after a poor move',()=>{
+  const maze={rows:['######','#....#','##.###','######'],start:[1,2]};
+  const initial=newGame(maze);
+  assert.equal(analyzeProgress(maze,initial).solvable,true);
+  const after=advance(maze,initial,'R').session;
+  const analysis=analyzeProgress(maze,after);
+  assert.equal(analysis.solvable,false);
+  assert.equal(analysis.unreachableRemaining,1);
+});
+test('live graph counts swept cells that cannot be stopping points',()=>{
+  const maze={rows:['#######','#.....#','#######'],start:[1,1]};
+  const stats=analyzeProgress(maze,newGame(maze));
+  assert.equal(stats.reachableStops,2);
+  assert.equal(stats.possiblePainted,5);
+});

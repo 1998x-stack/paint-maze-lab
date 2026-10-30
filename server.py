@@ -8,6 +8,7 @@ import argparse
 import mimetypes
 import time
 from paintmaze import Maze, assess, solve, generate, generate_validated, ALGORITHMS
+from paintmaze.difficulty import curate, measure, TIERS
 
 WEB = Path(__file__).resolve().parent / 'web'
 
@@ -36,17 +37,36 @@ def api(payload):
         if alg not in ALGORITHMS: raise ValueError('Unsupported algorithm')
         verified = payload.get('verified', True) is True
         if verified:
-            r = generate_validated(coarse_width=w, coarse_height=h, algorithm=alg, seed=seed,
-                                   extra_loops=loops, attempts=as_int(payload, 'attempts', 120, 1, 500),
-                                   min_steps=as_int(payload, 'min_steps', 0, 0, 150),
-                                   max_states=as_int(payload, 'budget', 60000, 100, 150000))
+            attempts = as_int(payload, 'attempts', 120, 1, 500)
+            min_steps = as_int(payload, 'min_steps', 0, 0, 150)
+            budget = as_int(payload, 'budget', 60000, 100, 150000)
+            preset = payload.get('difficulty', 'any')
+            if not isinstance(preset, str) or preset not in ('any', *TIERS):
+                raise ValueError('Unsupported difficulty preset')
+            max_steps = as_int(payload, 'max_steps', 150, 0, 150) if 'max_steps' in payload else None
+            target_steps = as_int(payload, 'target_steps', 0, 0, 150) if 'target_steps' in payload else None
+            if max_steps is not None or target_steps is not None or preset != 'any':
+                if attempts * as_int(payload,'candidates',5,1,24) > 1200:
+                    raise ValueError('Curation work budget exceeded (attempts × candidates > 1200)')
+                r = curate(coarse_width=w, coarse_height=h, algorithm=alg, seed=seed,
+                           extra_loops=loops, attempts=attempts, min_steps=min_steps,
+                           max_steps=max_steps, target_steps=target_steps, difficulty=preset,
+                           candidates=as_int(payload, 'candidates', 5, 1, 24), max_states=budget)
+            else:
+                r = generate_validated(coarse_width=w, coarse_height=h, algorithm=alg, seed=seed,
+                                       extra_loops=loops, attempts=attempts,
+                                       min_steps=min_steps, max_states=budget)
+                r['difficulty'] = measure(r['maze'], r['solution'])
             output = result_for(r['maze'], budget=60000)
             output['solution'] = r['solution']
             output['generation'] = r['generation']
+            output['difficulty'] = r['difficulty']
             return output
         m = generate(w, h, alg, seed, loops)
         output = result_for(m)
         output['generation'] = {'algorithm': alg, 'seed': seed, 'attempts': 1}
+        if output['solution']['exact'] and output['solution']['solvable']:
+            output['difficulty'] = measure(m, output['solution'])
         return output
     if op == 'analyze':
         text = str(payload.get('ascii', ''))

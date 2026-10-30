@@ -93,3 +93,54 @@ curl -s http://127.0.0.1:8765/api -H 'Content-Type: application/json' \
 - 在获得共同精确解的案例上，BFS 与 A* 最优步数不冲突；大关卡可能超过搜索预算。
 - 当前环境 Chromium 对本地地址导航返回 `ERR_BLOCKED_BY_ADMINISTRATOR`，因此无法在该环境完成浏览器级 E2E；已完成 HTTP 集成测试、Python/JS 一致性测试。用户本机可自行打开页面验证视觉与交互。
 - 没有多球、动态墙、传送门、逐格行走模式；前端是 Canvas 2D 视觉，未做 3D 渲染。
+
+## V3 — 难度策划与游戏体验联合优化
+
+**已实现：** `paintmaze/difficulty.py` 提供可解释难度特征、精确解筛选和候选择优。
+`web/engine.js` 在浏览器本地执行「当前停靠位置 + 已染色格」的精确可解性判定；
+`web/app.js` 在滑动中逐格染色，支持减少动画偏好、动态提示、走入无解区提醒、撤销、自动通关、键盘及触屏按钮。
+
+### 难度 API
+
+```bash
+curl -s http://127.0.0.1:8765/api -H 'Content-Type: application/json' \
+  -d '{"op":"generate","algorithm":"evolve","width":4,"height":4,"seed":42,
+       "verified":true,"difficulty":"challenging","candidates":6,"min_steps":6,
+       "max_steps":12,"target_steps":9}'
+```
+
+- `difficulty`: `any` / `relaxed` / `standard` / `challenging` / `expert`。这是**基于启发式分数的软目标**，不是人类实测难度；响应的 `generation.curation.tier_preference_met` 如实说明是否命中。
+- `min_steps`, `max_steps`: **严格**要求最优滑动次数位于区间内。无解或超过精确求解预算会被拒绝，不把它当作合格关卡。
+- `target_steps`: 区间内**软目标**，候选关卡按距目标的绝对差距择优；`target_distance` 报告偏差。若想严格要求指定次数，请同时令 `min_steps = max_steps = target_steps`。
+- `candidates`: 比较候选数量（1–24）；为了避免放大计算消耗，接口限制 `attempts × candidates <= 1200`。
+- `difficulty` 仅对 `verified=true` 的关卡筛选生效。未经验证的关卡不能宣称具备精确难度。
+- `relaxed` + `evolve` 添加 1～2 次滑动的保解教学模板（保留明确的 `generation.template` 来源）；这与传统生成树不同。
+- `difficulty` 返回 `score`、`tier`、`optimal_steps`、`turns`、`branch_decisions`、`repeated_travel_ratio`、`model`。任何评分都**不应解释为经真人标定的成功率**。
+
+### V3 可复现实验
+
+```bash
+python benchmarks/difficulty_eval.py --samples 30 --width 4 --height 4 \
+  --candidates 6 --seed 2026 --output results/v3_difficulty_eval.json
+```
+
+V3 基准（4×4 粗网格，6 候选/种子，每档 30 种子）：
+
+| 期望难度 | 生成成功 | 命中预设档位 | 平均最优滑动次数 |
+|---|---:|---:|---:|
+| 休闲 | 30/30 | 100% | 1.87 |
+| 标准 | 30/30 | 100% | 7.03 |
+| 挑战 | 30/30 | 86.67% | 8.63 |
+| 专家 | 30/30 | 30% | 9.40 |
+
+**限制：** 专家档位不稳定，返回的最接近候选可能低于要求；需要玩家数据验证难度评分，且生成器更需要多样的高难度保解种子。
+
+### 浏览器验收
+
+```bash
+python -m pip install playwright
+python -m playwright install chromium
+python tests/e2e_browser.py
+```
+
+GitHub `Browser acceptance` 工作流会在相关 PR 上执行真实 Chromium 游戏流程（生成 → 提示 → 自动通关 → 撤销 → 重置）并保存截图；当前执行容器的浏览器访问策略拒绝本地页面导航，因此本地仅完成 HTTP、Python 和 Node 单测，浏览器端验收应以 GitHub 工作流实际结果为准。

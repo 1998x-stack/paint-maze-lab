@@ -22,3 +22,34 @@ export function newGame(maze) {
   if(maze.rows[r]?.[c]!=='.') throw new TypeError('Start must be a floor cell');
   return {r,c,paint:new Set([`${r},${c}`]),moves:0};
 }
+
+/** O(V*L) exact solvability for monotone slide-paint rules from a LIVE state.
+ * Count swept floor tiles, not merely positions at which the ball can stop.
+ */
+export function analyzeProgress(maze, current) {
+  const reachable = new Set([`${current.r},${current.c}`]);
+  const paintedPossible = new Set(current.paint);
+  const queue = [[current.r,current.c]];
+  let index = 0;
+  while(index < queue.length) {
+    const [r,c] = queue[index++];
+    for (const [dr,dc] of Object.values(DIRECTIONS)) {
+      let y=r,x=c;
+      while (maze.rows[y+dr]?.[x+dc] === '.') {
+        y+=dr; x+=dc;
+        paintedPossible.add(`${y},${x}`);
+      }
+      const key=`${y},${x}`;
+      if((y!==r || x!==c) && !reachable.has(key)) {
+        reachable.add(key);queue.push([y,x]);
+      }
+    }
+  }
+  let total=0;
+  for(let r=0;r<maze.rows.length;r++) for(let c=0;c<maze.rows[r].length;c++) {
+    if(maze.rows[r][c]==='.') total++;
+  }
+  return {solvable:paintedPossible.size===total, reachableStops:reachable.size,
+          possiblePainted:paintedPossible.size, total,
+          unreachableRemaining:total-paintedPossible.size};
+}

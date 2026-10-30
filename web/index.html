@@ -8,7 +8,7 @@
 <div class="noise"></div>
 <div class="app">
   <aside class="sidebar">
-    <header class="branding"><div class="logo">P<span>/</span>M</div><div><b>PAINT MAZE</b><small>ALGORITHM LAB · v2.0</small></div></header>
+    <header class="branding"><div class="logo">P<span>/</span>M</div><div><b>PAINT MAZE</b><small>ALGORITHM LAB · v3.0</small></div></header>
     <div class="nav-kicker">WORKSPACE</div>
     <div class="sidebar-link active"><span class="dot"></span> 游戏 + 算法</div>
     <div class="sidebar-link"><span class="muted-icon">⌘</span> 六种生成器</div>
@@ -25,21 +25,28 @@
         <div class="twocol"><div><label>宽度（粗网格）</label><input id="width" type="number" min="2" max="9" value="4"></div><div><label>高度（粗网格）</label><input id="height" type="number" min="2" max="9" value="4"></div></div>
         <label>随机种子</label><div class="seedrow"><input id="seed" type="number" min="0" max="4294967295" value="42"><button id="randomseed" title="换随机种子">↻</button></div>
         <label>额外环路 / 变异强度 <span id="loopLabel">12%</span></label><input id="loops" type="range" min="0" max="60" value="12">
-        <label>目标最优步数（最低）</label><input id="minsteps" type="number" min="0" max="150" value="0">
+        <label for="difficulty">游戏难度偏好 <span>基于算法，非真人标定</span></label>
+        <select id="difficulty"><option value="any">不限 · 原始生成</option><option value="relaxed">休闲</option><option value="standard" selected>标准</option><option value="challenging">挑战</option><option value="expert">专家</option></select>
+        <div class="twocol"><div><label for="minsteps">最少滑动次数</label><input id="minsteps" type="number" min="0" max="150" value="0"></div><div><label for="maxsteps">最多滑动次数</label><input id="maxsteps" type="number" min="0" max="150" placeholder="无限制"></div></div>
+        <label for="targetsteps">期望最优次数（可选）</label><input id="targetsteps" type="number" min="0" max="150" placeholder="留空按难度偏好筛选">
+        <label for="candidates">候选比较数量</label><select id="candidates"><option value="3">3 · 快速</option><option value="5" selected>5 · 平衡</option><option value="8">8 · 更充分</option></select>
         <div class="toggle"><input type="checkbox" id="verified" checked><span>只生成已验证可解的关卡</span></div>
         <button class="primary" id="generate">生成新关卡 <span>↗</span></button>
         <button class="secondary" id="showPreset">载入反例：连通却不可解</button>
       </section>
       <section class="card play"><div class="section-head"><div><small>02 / PLAY</small><h2>滑动染色</h2></div><div class="live"><span></span> LIVE</div></div>
         <div class="game-toolbar"><div>LEVEL <strong id="levelLabel">SEED 42</strong></div><div id="rulesLabel">滑到墙壁才停</div></div>
-        <div class="game-stage"><canvas id="maze" width="640" height="640" aria-label="迷宫游戏画布"></canvas><div id="winOverlay" class="win hidden"><div>LEVEL CLEARED</div><b>全部染色完成</b><span id="winMoves"></span></div></div>
+        <div class="game-stage"><canvas id="maze" width="640" height="640" aria-label="迷宫游戏画布，可用方向键或滑动操作"></canvas><div id="winOverlay" class="win hidden"><div>LEVEL CLEARED</div><b>全部染色完成</b><span id="winMoves"></span><button id="nextLevel" class="primary">挑战下一关 →</button></div></div>
         <div class="actions"><button id="undo" title="回退一步">↶ <span>撤销</span></button><button id="restart" title="重开本关">↺ <span>重置</span></button><button id="hint" title="求解提示">✦ <span>提示</span></button><button id="auto" title="从当前局面重新规划并播放">▶ <span>继续演示</span></button></div>
+        <div class="experience-row"><div id="liveStatus" class="live-status" role="status" aria-live="polite">准备开始</div><div id="clock">00:00</div></div>
+        <div class="touch-pad" role="group" aria-label="移动方向"><button data-dir="U" aria-label="向上滑动">↑</button><div><button data-dir="L" aria-label="向左滑动">←</button><button data-dir="D" aria-label="向下滑动">↓</button><button data-dir="R" aria-label="向右滑动">→</button></div></div>
         <div class="keyhelp">用 <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 或方向键移动 · 也支持在棋盘上滑动</div>
       </section>
       <section class="card analytics"><div class="section-head"><div><small>03 / INSPECT</small><h2>实时图论分析</h2></div><span class="icon-box">▤</span></div>
         <div class="progress-label"><span>染色覆盖率</span><strong id="paintPercent">0%</strong></div><div class="progress"><div id="paintBar"></div></div>
         <div class="statgrid"><div><small>可通行格子</small><b id="floorCount">—</b></div><div><small>最优操作</small><b id="optimalSteps">—</b></div><div><small>当前操作</small><b id="moveCount">0</b></div><div><small>可达停靠点</small><b id="stopCount">—</b></div></div>
-        <div class="verdict"><small>REACHABILITY VERDICT</small><div id="verdict">等待验证</div><p id="reason">状态图与染色覆盖并集</p></div>
+        <div class="difficulty-readout"><small>难度评分（启发式）</small><strong id="difficultyScore">—</strong><span id="difficultyDetails">等待关卡</span></div>
+        <div class="verdict"><small>LIVE REACHABILITY VERDICT</small><div id="verdict">等待验证</div><p id="reason">状态图与染色覆盖并集</p></div>
         <label class="term-title">求解器输出 <span id="solveMeta"></span></label><pre id="solverOutput">—</pre>
       </section>
     </div>

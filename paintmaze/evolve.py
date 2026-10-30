@@ -81,3 +81,24 @@ def evolve_maze(coarse_width: int, coarse_height: int, seed: int,
         raise RuntimeError(f'No evolved level meeting {min_steps} steps after {min(trials,len(interior))} mutations; achieved {answer["steps"]}')
     return EvolutionResult(maze, answer, min(trials, len(interior)), accepted,
                            initial['steps'])
+
+
+def tutorial_maze(coarse_width: int, coarse_height: int, seed: int) -> Maze:
+    """Seeded short corridor/L-shape. Always slide-completable in 1 or 2 moves.
+
+    Intended for the easy learning curve, not as a substitute for evolution.
+    """
+    rng = random.Random(seed)
+    transpose = bool(rng.getrandbits(1))
+    # Build in the inverse orientation so the final dimensions remain exact.
+    raw_width, raw_height = (coarse_height, coarse_width) if transpose else (coarse_width, coarse_height)
+    h, w = 2*raw_height+1, 2*raw_width+1
+    rows = [['#']*w for _ in range(h)]
+    r = rng.randrange(1,h-1)
+    for c in range(1,w-1): rows[r][c]='.'
+    if rng.getrandbits(1):
+        # A single vertical branch starting only at the right end; it is
+        # traversable from that stopping corner, not an inaccessible fork.
+        for rr in range(r+1,h-1): rows[rr][w-2]='.'
+    maze=Maze(tuple(''.join(row) for row in rows),(r,1))
+    return transform(maze,bool(rng.getrandbits(1)),bool(rng.getrandbits(1)),transpose)

@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "paint-maze-lab"
+version = "0.3.0"
+description = "Sliding paint maze generation, graph-based solvability and exact search"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[tool.setuptools]
+packages = ["paintmaze"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

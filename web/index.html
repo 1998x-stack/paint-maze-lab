@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>PAINT / MAZE — 算法实验室</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="noise"></div>
+<div class="app">
+  <aside class="sidebar">
+    <header class="branding"><div class="logo">P<span>/</span>M</div><div><b>PAINT MAZE</b><small>ALGORITHM LAB · v2.0</small></div></header>
+    <div class="nav-kicker">WORKSPACE</div>
+    <div class="sidebar-link active"><span class="dot"></span> 游戏 + 算法</div>
+    <div class="sidebar-link"><span class="muted-icon">⌘</span> 六种生成器</div>
+    <div class="sidebar-link"><span class="muted-icon">◇</span> 可解性验证</div>
+    <div class="sidebar-link"><span class="muted-icon">◎</span> 性能对比</div>
+    <div class="side-bottom"><span class="online"></span> LOCAL ENGINE ONLINE <small>100% 可重复生成</small></div>
+  </aside>
+  <main class="main">
+    <div class="topline"><span>LABORATORY <b>/</b> SLIDING GRAPH</span><span class="build">● PYTHON BACKEND · JAVASCRIPT FRONTEND</span></div>
+    <section class="hero"><div><div class="eyebrow">PROCEDURAL GAME SYSTEM <span> / 01</span></div><h1>每一条路径，<br><em>都有算法。</em></h1><p>生成迷宫、滚动染色、求解最短路径。<br>从连通性判断到最优搜索，观察图论如何变成游戏。</p></div><div class="hero-mark">01<span>/</span>04</div></section>
+    <div class="workspace-grid">
+      <section class="card controls"><div class="section-head"><div><small>01 / GENERATE</small><h2>关卡构建器</h2></div><span class="icon-box">⚙</span></div>
+        <label>生成算法</label><select id="algorithm"><option value="dfs">Randomized DFS</option><option value="prim">Randomized Prim</option><option value="kruskal">Randomized Kruskal</option><option value="wilson">Wilson UST</option><option value="snake">Constructive Snake（保解）</option><option value="evolve" selected>Evolution（随机保解）</option></select>
+        <div class="twocol"><div><label>宽度（粗网格）</label><input id="width" type="number" min="2" max="9" value="4"></div><div><label>高度（粗网格）</label><input id="height" type="number" min="2" max="9" value="4"></div></div>
+        <label>随机种子</label><div class="seedrow"><input id="seed" type="number" min="0" max="4294967295" value="42"><button id="randomseed" title="换随机种子">↻</button></div>
+        <label>额外环路 / 变异强度 <span id="loopLabel">12%</span></label><input id="loops" type="range" min="0" max="60" value="12">
+        <label>目标最优步数（最低）</label><input id="minsteps" type="number" min="0" max="150" value="0">
+        <div class="toggle"><input type="checkbox" id="verified" checked><span>只生成已验证可解的关卡</span></div>
+        <button class="primary" id="generate">生成新关卡 <span>↗</span></button>
+        <button class="secondary" id="showPreset">载入反例：连通却不可解</button>
+      </section>
+      <section class="card play"><div class="section-head"><div><small>02 / PLAY</small><h2>滑动染色</h2></div><div class="live"><span></span> LIVE</div></div>
+        <div class="game-toolbar"><div>LEVEL <strong id="levelLabel">SEED 42</strong></div><div id="rulesLabel">滑到墙壁才停</div></div>
+        <div class="game-stage"><canvas id="maze" width="640" height="640" aria-label="迷宫游戏画布"></canvas><div id="winOverlay" class="win hidden"><div>LEVEL CLEARED</div><b>全部染色完成</b><span id="winMoves"></span></div></div>
+        <div class="actions"><button id="undo" title="回退一步">↶ <span>撤销</span></button><button id="restart" title="重开本关">↺ <span>重置</span></button><button id="hint" title="求解提示">✦ <span>提示</span></button><button id="auto" title="从当前局面重新规划并播放">▶ <span>继续演示</span></button></div>
+        <div class="keyhelp">用 <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 或方向键移动 · 也支持在棋盘上滑动</div>
+      </section>
+      <section class="card analytics"><div class="section-head"><div><small>03 / INSPECT</small><h2>实时图论分析</h2></div><span class="icon-box">▤</span></div>
+        <div class="progress-label"><span>染色覆盖率</span><strong id="paintPercent">0%</strong></div><div class="progress"><div id="paintBar"></div></div>
+        <div class="statgrid"><div><small>可通行格子</small><b id="floorCount">—</b></div><div><small>最优操作</small><b id="optimalSteps">—</b></div><div><small>当前操作</small><b id="moveCount">0</b></div><div><small>可达停靠点</small><b id="stopCount">—</b></div></div>
+        <div class="verdict"><small>REACHABILITY VERDICT</small><div id="verdict">等待验证</div><p id="reason">状态图与染色覆盖并集</p></div>
+        <label class="term-title">求解器输出 <span id="solveMeta"></span></label><pre id="solverOutput">—</pre>
+      </section>
+    </div>
+    <section class="card bench"><div class="bench-header"><div><small>04 / BENCHMARK</small><h2>六种生成算法横向对比</h2><p>使用相同尺寸、环路率和起始种子，比较四种生成树算法、Snake 保解基线及随机进化生成器的可解率与最优步数。</p></div><div class="bench-controls"><label>每种算法样本数 <select id="samples"><option value="10">10</option><option value="20" selected>20</option><option value="40">40</option></select></label><button id="compare" class="secondary">运行基准测试 ↗</button></div></div>
+      <div class="bench-layout"><div class="bars" id="bars"><div class="empty">点击「运行基准测试」开始比较</div></div><div class="bench-table-scroll"><table><thead><tr><th>算法</th><th>可解率</th><th>精确解样本</th><th>平均最优步数*</th><th>耗时</th></tr></thead><tbody id="benchRows"><tr><td colspan="5" class="placeholder">尚无测试结果</td></tr></tbody></table></div></div>
+      <div class="footnote">* 平均最优步数仅统计已求得精确解的可解关卡，未必可以跨算法无偏比较。计时包含生成、可解性验证和求解。</div>
+    </section>
+    <footer>PAINT MAZE LAB <span>DETERMINISTIC GAME ENGINE / GRAPH COVERAGE / EXACT SEARCH</span> <a href="https://github.com/john-science/mazelib" target="_blank" rel="noreferrer">ALGORITHM REFERENCE ↗</a></footer>
+  </main>
+</div>
+<div id="toast" aria-live="polite"></div>
+<script type="module" src="/app.js"></script>
+</body></html>
